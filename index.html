@@ -95,8 +95,9 @@ main{max-width:1180px;margin:0 auto;padding:16px 18px 60px}
 .mdl a.cat:hover{color:var(--red)}
 .mdl a.mlink{font-weight:600;font-size:18px;letter-spacing:.3px;font-variant-numeric:tabular-nums;color:var(--dark-blue);text-decoration:underline;text-underline-offset:2px}
 .rowcard .mdl a.mlink{color:#9CC6E2}
-.mdl .cabmiss{color:#FF6B6B;font-weight:800;font-size:inherit;cursor:help}
-.mdl .mdl .cabtip{display:none;position:fixed;width:230px;background:#fff;color:#7A1A10;border:1.5px solid var(--red);border-radius:7px;padding:8px 10px;font-size:11px;font-weight:600;line-height:1.35;letter-spacing:normal;text-align:left;white-space:normal;z-index:200;box-shadow:0 6px 18px rgba(0,0,0,.35);pointer-events:none}
+.mdl .cabmiss{color:#FF6B6B;display:contents;font-size:inherit;font-weight:inherit;line-height:inherit;letter-spacing:inherit;font-family:inherit}
+.mdl b:has(.cabmiss),.mdl a:has(.cabmiss){cursor:help}
+.mdl .cabtip{display:none;position:fixed;width:230px;background:#fff;color:#7A1A10;border:1.5px solid var(--red);border-radius:7px;padding:8px 10px;font-size:11px;font-weight:600;line-height:1.35;letter-spacing:normal;text-align:left;white-space:normal;z-index:200;box-shadow:0 6px 18px rgba(0,0,0,.35);pointer-events:none}
 .mdl a.mlink:hover{color:var(--red)}
 .rowspecs{flex:0 1 auto;display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center}
 .btu-warn{color:#F2C84B !important}
@@ -216,7 +217,7 @@ footer .motto{font-family:'Roboto Slab',Georgia,serif;color:var(--dark-blue);fon
 <main id="main"></main>
 
 <div class="refwrap">
-  <details class="ref"><summary>Notes &amp; reference for this guide</summary><div class="refbody" id="refbody"></div></details>
+  <details class="ref"><summary>How to use this guide</summary><div class="refbody" id="refbody"></div></details>
 </div>
 
 <footer>
@@ -857,9 +858,10 @@ function renderMain(){
         let L=ev.clientX-tip.offsetWidth-8; if(L<6) L=ev.clientX+14;          // top-right of popup ↘ cursor's bottom-left
         let T=ev.clientY+8; if(T+tip.offsetHeight>innerHeight-6) T=ev.clientY-tip.offsetHeight-8;
         tip.style.left=L+'px'; tip.style.top=T+'px'; };
-      el.addEventListener('mouseenter',place);
-      el.addEventListener('mousemove',place);
-      el.addEventListener('mouseleave',()=>{ tip.style.display='none'; });
+      const host=el.parentElement||el;
+      host.addEventListener('mouseenter',place);
+      host.addEventListener('mousemove',place);
+      host.addEventListener('mouseleave',()=>{ tip.style.display='none'; });
     });
     card.querySelectorAll('select[data-field]').forEach(selEl=>{
       selEl.onchange=e=>{
@@ -892,10 +894,31 @@ function findRowCtx(id){
   for(const sh of G().sheets) for(const sec of sh.sections) for(const r of sec.rows) if(r.id===id) return {sh,sec,row:r};
   return null;
 }
+/* User-facing help for the guide (shown in the "How to use this guide" section) */
+const USER_NOTES=[
+  {h:'Getting started'},
+  {t:'Branch',d:'Pick your branch first. It sets the default outdoor design temperature, sales tax rate, and Goodman distributor for every card.'},
+  {t:'Guide',d:'1-5 Star Line-up is the standard Goettl matchup set. All-Lennox and All-Goodman show a single brand across every star tier.'},
+  {t:'Filters',d:'Choose a star tier, then the system type. Split Gas also lets you pick coil orientation (Vertical / Horizontal), furnace efficiency (80% or 90%+ AFUE), and furnace airflow (Upflow / Downflow). Package systems are 1-3 star only.'},
+  {t:'Design temp',d:'Defaults by branch. Change it to see cooling capacity at a different outdoor temperature; the BTU figure on each card follows it.'},
+  {h:'Reading a card'},
+  {t:'Equipment line',d:'Condenser, coil, furnace or air handler, and thermostat. Goodman model numbers open the distributor page; Lennox catalog numbers open LennoxPros.'},
+  {t:'Performance line',d:'Breaker and line sizes on the left; SEER2, EER2, BTU at the selected design temperature, and the AHRI number on the right.'},
+  {t:'Badges',d:'✓ Default Matchup is the standard combination. ⚠ Modified means a component was changed. "Cabinet sizes differ" and "No AHRI listing" are warnings to check before selling.'},
+  {h:'Expanding a card'},
+  {t:'Modifications',d:'Tap a card to expand it. Swap the coil, furnace, air handler, unit, thermostat, or heat strip - only AHRI-certified options are listed. "Reset to Goettl default" restores the standard matchup. Changing any filter also resets modifications.'},
+  {t:'Cooling capacity at high ambient',d:'Capacity at 95, 105, 110, and 115°F outdoor, at 375 and 400 cfm/ton. Rows labeled "Estimated" are derived from the rated capacity with a derate curve.'},
+  {h:'Color cues'},
+  {t:'BTU in yellow or red',d:'The capacity at your design temperature is below the nominal tonnage - yellow for a moderate shortfall, red for a large one. Hover for the reminder to confirm Manual J and Manual S sizing before installing.'},
+  {t:'Red cabinet letter',d:'The coil and furnace cabinet widths differ. Hover the model number to see both widths. Mismatches are allowed but must be verified for fit.'},
+  {h:'Pricing'},
+  {t:'Show pricing',d:'Use the button at the top right with the pricing password. Each component is priced, followed by the equipment subtotal, Lennox surcharge where it applies, sales tax, and total. Thermostats are not priced. Pricing locks again when the page is closed.'},
+  {h:'Mgr Edits (branch managers)'},
+  {t:'Proposing changes',d:'The Mgr Edits button at the bottom right opens with your branch password and also shows pricing. Change a component and tap "Propose as default", edit a price and tap "Propose price correction", or pick "➕ New model…" in any dropdown to request a model that is not in the guide. Nothing changes live.'},
+  {t:'Sending the request',d:'Open Review from the same button to see your proposed changes, add model numbers and notes, then use "Excel for email" to download the change request and send it for review. "Clear all" discards everything and exits edit mode.'},
+];
 function renderRef(){
-  const g=G();
-  const full=state.unlocked&&SECRET&&SECRET.guides[guideId()]&&SECRET.guides[guideId()].notes;
-  document.getElementById('refbody').innerHTML=((full||g.notes)||[]).map(n=>
+  document.getElementById('refbody').innerHTML=USER_NOTES.map(n=>
     n.h?`<h4>${esc(n.h)}</h4>`:`<p><b>${esc(n.t)}:</b> ${esc(n.d)}</p>`).join('');
 }
 function renderAll(){ renderControls(); renderMain(); renderRef(); }
@@ -1795,7 +1818,7 @@ function renoRenderMain(){
     card.querySelectorAll('.cabmiss').forEach(el=>{
       const tip=el.querySelector('.cabtip'); if(!tip) return;
       const place=ev=>{ tip.style.display='block'; let L=ev.clientX-tip.offsetWidth-8; if(L<6) L=ev.clientX+14; let T=ev.clientY+8; if(T+tip.offsetHeight>innerHeight-6) T=ev.clientY-tip.offsetHeight-8; tip.style.left=L+'px'; tip.style.top=T+'px'; };
-      el.addEventListener('mouseenter',place); el.addEventListener('mousemove',place); el.addEventListener('mouseleave',()=>{ tip.style.display='none'; });
+      const host=el.parentElement||el; host.addEventListener('mouseenter',place); host.addEventListener('mousemove',place); host.addEventListener('mouseleave',()=>{ tip.style.display='none'; });
     });
     card.querySelectorAll('select[data-field]').forEach(selEl=>{
       selEl.onchange=e=>{
