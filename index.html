@@ -335,6 +335,8 @@ const DESIGN_TEMP_DEFAULT = {
 
 /* Branches that default to Aspen/ADP (DP…) coils on HORIZONTAL split-gas matchups (editable) */
 const ASPEN_COIL_BRANCHES = ['Las Vegas'];
+/* Branches that upsize the default coil on 2.5T/3.5T Goodman split-gas matchups (coil one size up, furnace cabinet must match). Reno excluded. */
+const UPSIZE_COIL_BRANCHES = ['Phoenix','Tucson','Las Vegas','San Antonio','Austin'];
 
 /* ── Lennox Section 232 tariff surcharge ──
    % of each Lennox component's price, applied only to Lennox equipment and — like the
@@ -424,10 +426,27 @@ function cab(model){ const ci=cabInfo(model); return ci?ci.w:null; }
 function rowSel(row){ return sel[row.id] || (sel[row.id]={}); }
 function clearSel(){ for(const k in sel) delete sel[k]; }   // reset all matchup modifications
 function coilHasAhri(cond,coil){ const A=(G()||{}).ahri||{}; return !!(A[cond+'|'+coil] || A[cond+'|'+String(coil).slice(0,9)]); }
+function coilSizeCode(m){ const x=String(m).match(/^C[AH]P[TE]A(\d\d)/); return x?+x[1]:null; }  // Goodman coil nominal size (24,30,36,42,48,60)
+function upsizedCoil(row){   // next-size default coil for 2.5T/3.5T Goodman split gas, cabinet-matched to the furnace
+  if(!(row.tons==='2.5T'||row.tons==='3.5T')) return null;
+  if(coilSizeCode(row.coil)==null) return null;                 // Goodman CAPTA/CHPTA/CAPEA/CHPEA coils only
+  const targets = row.tons==='2.5T' ? [36] : [48,60];           // 2.5T→3T; 3.5T→4T, else 5T if no 4T is certified
+  const fw = (cabInfo(row.furn)||{}).w;
+  if(fw==null) return null;                                      // can't verify cabinet → leave default
+  for(const target of targets){
+    const cands=(row.coil_opts||[]).filter(c=>coilSizeCode(c)===target);
+    const pick=cands.find(c=>{const ci=cabInfo(c); return ci&&ci.w===fw;});   // furnace-cabinet match only
+    if(pick) return pick;
+  }
+  return null;
+}
 function baseCoil(row){   // branch default coil on horizontals: ADP (LP…) for Lennox, Aspen (DP…) for Goodman
   if(state.sys==='splitgas' && state.coil==='H' && ASPEN_COIL_BRANCHES.includes(state.branch)){
     const uni=(row.coil_opts||[]).find(m=>/^(LP|DP)/.test(m));
-    if(uni && coilHasAhri(row.cond,uni)) return uni;   // only default to it when the match is AHRI-certified
+    if(uni && coilHasAhri(row.cond,uni)) return uni;   // LV Aspen horizontal — keep, never upsize
+  }
+  if(state.sys==='splitgas' && UPSIZE_COIL_BRANCHES.includes(state.branch)){
+    const up=upsizedCoil(row); if(up) return up;
   }
   return row.coil;
 }
